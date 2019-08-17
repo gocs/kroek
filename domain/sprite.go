@@ -16,8 +16,6 @@ type Sprite struct {
 		x int
 		y int
 	}
-	scaleX float64
-	scaleY float64
 	Width  int
 	Height int
 }
@@ -30,8 +28,6 @@ func NewSprite(screen Screener, spriteImage *ebiten.Image, x, y int) *Sprite {
 		image:  spriteImage,
 		x:      x,
 		y:      y,
-		scaleX: 2,
-		scaleY: 2,
 		Width:  w,
 		Height: h,
 	}
@@ -58,7 +54,7 @@ func (s *Sprite) In(x, y int) bool {
 	// Note that this is not a good manner to use At for logic
 	// since color from At might include some errors on some machines.
 	// As this is not so important logic, it's ok to use it so far.
-	return s.image.At(x-s.x*int(s.scaleX), y-s.y*int(s.scaleY)).(color.RGBA).A > 0
+	return s.image.At(x-s.x, y-s.y).(color.RGBA).A > 0
 }
 
 // MoveBy moves the sprite by (x, y).
@@ -67,17 +63,20 @@ func (s *Sprite) MoveBy(x, y int) {
 
 	s.x += x
 	s.y += y
-	if s.x < 0 {
-		s.x = 0
+
+	// if x, y is <1/2 of w, h { set to 1/2 w, h}
+	// w favorably gives buffer
+	if s.x < s.screen.Width()/2-w {
+		s.x = s.screen.Width()/2 - w
 	}
-	if s.x > s.screen.Width()-w {
-		s.x = s.screen.Width() - w
+	if s.x > s.screen.Width()/2 {
+		s.x = s.screen.Width() / 2
 	}
-	if s.y < 0 {
-		s.y = 0
+	if s.y < s.screen.Height()/2-h {
+		s.y = s.screen.Height()/2 - h
 	}
-	if s.y > s.screen.Height()-h {
-		s.y = s.screen.Height() - h
+	if s.y > s.screen.Height()/2 {
+		s.y = s.screen.Height() / 2
 	}
 }
 
@@ -85,20 +84,7 @@ func (s *Sprite) MoveBy(x, y int) {
 func (s *Sprite) Draw(screen *ebiten.Image, dx, dy int, alpha float64) {
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(s.x+dx), float64(s.y+dy))
-	op.GeoM.Scale(s.scaleX, s.scaleY)
 	op.ColorM.Scale(1, 1, 1, alpha)
 
 	screen.DrawImage(s.image, op)
 }
-
-// func (s *Sprite) Resize(percent int) {
-// 	if percent > 100 && percent < 0 {
-// 		return
-// 	}
-// 	op := &ebiten.DrawImageOptions{}
-// 	s.scaleX = 2
-// 	s.scaleY = 2
-// 	op.GeoM.Scale(s.scaleX, s.scaleY)
-// 	// w, h := s.image.Size()
-
-// }

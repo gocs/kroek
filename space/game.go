@@ -5,7 +5,6 @@ import (
 
 	"github.com/gocs/kroek/domain"
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"github.com/hajimehoshi/ebiten/inpututil"
 )
 
@@ -67,6 +66,7 @@ func (g *Game) updateStroke(stroke *domain.Stroke) {
 
 // Update used for ebiten.Run handler
 func (g *Game) Update(screen *ebiten.Image) error {
+	// if mouse pressed or touched
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		s := domain.NewStroke(&domain.MouseStrokeSource{})
 		s.SetDraggingObject(g.spriteAt(s.Position()))
@@ -111,10 +111,6 @@ func (g *Game) Update(screen *ebiten.Image) error {
 			sprite.Draw(screen, dx, dy, 0.5)
 		}
 	}
-
-	// dragginMap := map[*domain.Map]struct{}{}
-
-	ebitenutil.DebugPrint(screen, "Drag & Drop the sprites!")
 
 	return nil
 }

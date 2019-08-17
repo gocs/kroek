@@ -79,7 +79,8 @@ func init() {
 		)
 		sprites = append(sprites, s)
 	}
-	mapSprite := domain.NewSprite(screen, mapImage, 0, 0)
+	middlePosX, middlePosY := mapImage.Size()
+	mapSprite := domain.NewSprite(screen, mapImage, screen.Width()/2-middlePosX/2, screen.Height()/2-middlePosY/2)
 
 	sprites = append(sprites, mapSprite)
 
