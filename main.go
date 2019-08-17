@@ -7,13 +7,14 @@ import (
 	"io/ioutil"
 	"log"
 	"math/rand"
+	"os"
 	"time"
 
-	"gocs.org/kroek/domain"
+	"github.com/gocs/kroek/domain"
 
+	"github.com/gocs/kroek/space"
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/examples/resources/images"
-	"gocs.org/kroek/space"
 )
 
 var (
@@ -50,7 +51,12 @@ func init() {
 	}
 	ebitenImage, _ := ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 
-	reading, err := ioutil.ReadFile("pirate-treasure-map-sticker.png")
+	var filename string
+	if len(os.Args) > 0 {
+		filename = os.Args[1]
+	}
+
+	reading, err := ioutil.ReadFile(filename)
 	if err != nil {
 		log.Fatal(err)
 	}

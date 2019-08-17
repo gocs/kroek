@@ -3,10 +3,10 @@ package space
 import (
 	"errors"
 
+	"github.com/gocs/kroek/domain"
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"github.com/hajimehoshi/ebiten/inpututil"
-	"gocs.org/kroek/domain"
 )
 
 var errRegularTermination = errors.New("regular termination")
