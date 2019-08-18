@@ -48,3 +48,9 @@ func (m *Map) MoveBy(x, y int) {
 func (m *Map) Draw(screen *ebiten.Image, alpha float64) {
 	m.sprite.Draw(screen, alpha)
 }
+
+// City basic city struct 
+type City struct {
+	name string
+	location Point
+}

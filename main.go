@@ -43,12 +43,14 @@ func init() {
 	ebitenImage, _ := ebiten.NewImageFromImage(img, ebiten.FilterDefault)
 
 	// Initialize the sprites.
-	sprites := []*domain.Sprite{}
+	sprites := []domain.Spriter{}
 	middlePosX, middlePosY := ebitenImage.Size()
-	mapSprite := domain.NewSprite(
+	var cities []*domain.City
+	mapSprite := domain.NewMapSprite(
 		screen,
 		ebitenImage,
-		screen.Width()/2-middlePosX/2, screen.Height()/2-middlePosY/2)
+		screen.Width()/2-middlePosX/2, screen.Height()/2-middlePosY/2,
+		cities)
 
 	sprites = append(sprites, mapSprite)
 
@@ -60,7 +62,7 @@ func init() {
 }
 
 func main() {
-	if err := ebiten.Run(theGame.Update, screen.Width(), screen.Height(), 2, "Drag & Drop (Ebiten Demo)"); err != nil {
+	if err := ebiten.Run(theGame.Update, screen.Width(), screen.Height(), 2, "Kroek"); err != nil {
 		log.Fatal(err)
 	}
 }

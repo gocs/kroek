@@ -15,19 +15,19 @@ var errRegularTermination = errors.New("regular termination")
 // Game the game logic sequence struct
 type Game struct {
 	strokes map[*domain.Stroke]struct{}
-	sprites []*domain.Sprite
+	sprites []domain.Spriter
 	scale   float64
 }
 
 // NewGame generates game struct
-func NewGame(strokes map[*domain.Stroke]struct{}, sprites []*domain.Sprite) *Game {
+func NewGame(strokes map[*domain.Stroke]struct{}, sprites []domain.Spriter) *Game {
 	return &Game{
 		strokes: strokes,
 		sprites: sprites,
 	}
 }
 
-func (g *Game) spriteAt(x, y int) *domain.Sprite {
+func (g *Game) spriteAt(x, y int) domain.Spriter {
 	// As the sprites are ordered from back to front,
 	// search the clicked/touched sprite in reverse order.
 	for i := len(g.sprites) - 1; i >= 0; i-- {
@@ -45,7 +45,7 @@ func (g *Game) updateStroke(stroke *domain.Stroke) {
 		return
 	}
 
-	s := stroke.DraggingObject().(*domain.Sprite)
+	s := stroke.DraggingObject().(domain.Spriter)
 	if s == nil {
 		return
 	}
@@ -100,15 +100,15 @@ func (g *Game) Update(screen *ebiten.Image) (err error) {
 		return nil
 	}
 
-	draggingSprites := map[*domain.Sprite]struct{}{}
+	draggingSprites := map[domain.Spriter]struct{}{}
 	for s := range g.strokes {
-		if sprite := s.DraggingObject().(*domain.Sprite); sprite != nil {
+		if sprite := s.DraggingObject().(domain.Spriter); sprite != nil {
 			draggingSprites[sprite] = struct{}{}
 		}
 	}
 
 	for _, s := range g.sprites {
-		if _, ok := draggingSprites[s]; ok {
+		if _, ok := draggingSprites[s.(domain.Spriter)]; ok {
 			continue
 		}
 		err = s.InitDrawingOptions().Zoom(
@@ -119,7 +119,7 @@ func (g *Game) Update(screen *ebiten.Image) (err error) {
 	}
 	for s := range g.strokes {
 		dx, dy := s.PositionDiff()
-		if sprite := s.DraggingObject().(*domain.Sprite); sprite != nil {
+		if sprite := s.DraggingObject().(domain.Spriter); sprite != nil {
 			err = sprite.InitDrawingOptions().Zoom(
 				g.scale,
 			).Move(

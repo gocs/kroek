@@ -14,10 +14,6 @@ type Sprite struct {
 	op     *ebiten.DrawImageOptions
 	x      int
 	y      int
-	cities []struct {
-		x int
-		y int
-	}
 	Width  float64
 	Height float64
 	scale  float64
@@ -26,7 +22,7 @@ type Sprite struct {
 }
 
 // NewSprite sprite initializer
-func NewSprite(screen Screener, spriteImage *ebiten.Image, x, y int) *Sprite {
+func NewSprite(screen Screener, spriteImage *ebiten.Image, x, y int) Spriter {
 	w, h := spriteImage.Size()
 	return &Sprite{
 		screen: screen,
@@ -45,11 +41,11 @@ type Screener interface {
 	Height() int
 }
 
-// Spriter struct must have sprites methods
+// Spriter struct must have sprites methods to be called a sprite
 type Spriter interface {
 	In(x, y int) bool
 	MoveBy(x, y int)
-	Draw(screen *ebiten.Image, dx, dy int, alpha float64)
+	DrawingBuilder
 }
 
 // In returns true if (x, y) is in the sprite, and false otherwise.
@@ -62,7 +58,7 @@ func (s *Sprite) In(x, y int) bool {
 	// As this is not so important logic, it's ok to use it so far.
 
 	// todo: recognize color even if resized
-	// change s.image size
+	// change s.image size by replacing image
 	return s.image.At(x-s.x, y-s.y).(color.RGBA).A > 0
 }
 
@@ -137,4 +133,25 @@ func (s *Sprite) Zoom(length float64) DrawingBuilder {
 func (s *Sprite) InitDrawingOptions() DrawingBuilder {
 	s.op = &ebiten.DrawImageOptions{}
 	return s
+}
+
+// MapSprite represents an image.
+type MapSprite struct {
+	Cities []*City
+
+	// MapSprite need these implementations
+	Spriter
+}
+
+// MapSpriter struct must be a Spriter with other methods here
+type MapSpriter interface {
+	Spriter
+}
+
+// NewMapSprite generates new map sprite
+func NewMapSprite(screen Screener, spriteImage *ebiten.Image, x, y int, cities []*City) MapSpriter {
+	return &MapSprite{
+		Cities:  cities,
+		Spriter: NewSprite(screen, spriteImage, x, y),
+	}
 }
