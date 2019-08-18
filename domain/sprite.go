@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"errors"
 	"image/color"
 
 	"github.com/hajimehoshi/ebiten"
@@ -10,14 +11,18 @@ import (
 type Sprite struct {
 	screen Screener
 	image  *ebiten.Image
+	op     *ebiten.DrawImageOptions
 	x      int
 	y      int
 	cities []struct {
 		x int
 		y int
 	}
-	Width  int
-	Height int
+	Width  float64
+	Height float64
+	scale  float64
+
+	err error
 }
 
 // NewSprite sprite initializer
@@ -28,8 +33,9 @@ func NewSprite(screen Screener, spriteImage *ebiten.Image, x, y int) *Sprite {
 		image:  spriteImage,
 		x:      x,
 		y:      y,
-		Width:  w,
-		Height: h,
+		Width:  float64(w),
+		Height: float64(h),
+		scale:  1,
 	}
 }
 
@@ -54,6 +60,9 @@ func (s *Sprite) In(x, y int) bool {
 	// Note that this is not a good manner to use At for logic
 	// since color from At might include some errors on some machines.
 	// As this is not so important logic, it's ok to use it so far.
+
+	// todo: recognize color even if resized
+	// change s.image size
 	return s.image.At(x-s.x, y-s.y).(color.RGBA).A > 0
 }
 
@@ -80,11 +89,52 @@ func (s *Sprite) MoveBy(x, y int) {
 	}
 }
 
-// Draw draws the sprite.
-func (s *Sprite) Draw(screen *ebiten.Image, dx, dy int, alpha float64) {
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(float64(s.x+dx), float64(s.y+dy))
-	op.ColorM.Scale(1, 1, 1, alpha)
+// DrawingBuilder Drawing options region
+// considering struct of functions for better formatting
+// anything between InitDrawingOptions and Draw are unordered
+type DrawingBuilder interface {
+	InitDrawingOptions() DrawingBuilder
+	Zoom(length float64) DrawingBuilder
+	Move(dx, dy int) DrawingBuilder
+	Draw(screen *ebiten.Image, alpha float64) error
+}
 
-	screen.DrawImage(s.image, op)
+// Draw draws the sprite.
+func (s *Sprite) Draw(screen *ebiten.Image, alpha float64) error {
+	if s.op == nil {
+		return errors.New("add a &ebiten.DrawImageOptions{} to s.op")
+	}
+	s.op.ColorM.Scale(1, 1, 1, alpha)
+	s.err = screen.DrawImage(s.image, s.op)
+	return s.err
+}
+
+// Move Moves the image to a location; basically Translate
+func (s *Sprite) Move(dx, dy int) DrawingBuilder {
+	if s.op == nil {
+		s.err = errors.New("add a &ebiten.DrawImageOptions{} to s.op")
+		return s
+	}
+	s.op.GeoM.Translate(float64(s.x+dx), float64(s.y+dy))
+	return s
+}
+
+// Zoom zooms the image larger or smaller
+func (s *Sprite) Zoom(length float64) DrawingBuilder {
+	if s.op == nil {
+		s.err = errors.New("add a &ebiten.DrawImageOptions{} to s.op")
+		return s
+	}
+	s.scale += length
+	s.Width += length
+	s.Height += length
+
+	s.op.GeoM.Scale(float64(s.scale), float64(s.scale))
+	return s
+}
+
+// InitDrawingOptions every method in drawing must be preceded to keep the geom and colorm
+func (s *Sprite) InitDrawingOptions() DrawingBuilder {
+	s.op = &ebiten.DrawImageOptions{}
+	return s
 }

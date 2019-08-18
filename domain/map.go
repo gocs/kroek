@@ -45,6 +45,6 @@ func (m *Map) MoveBy(x, y int) {
 }
 
 // Draw draws the map.
-func (m *Map) Draw(screen *ebiten.Image, dx, dy int, alpha float64) {
-	m.sprite.Draw(screen, dx, dy, alpha)
+func (m *Map) Draw(screen *ebiten.Image, alpha float64) {
+	m.sprite.Draw(screen, alpha)
 }

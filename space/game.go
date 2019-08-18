@@ -2,9 +2,11 @@ package space
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/gocs/kroek/domain"
 	"github.com/hajimehoshi/ebiten"
+	"github.com/hajimehoshi/ebiten/ebitenutil"
 	"github.com/hajimehoshi/ebiten/inpututil"
 )
 
@@ -14,6 +16,7 @@ var errRegularTermination = errors.New("regular termination")
 type Game struct {
 	strokes map[*domain.Stroke]struct{}
 	sprites []*domain.Sprite
+	scale   float64
 }
 
 // NewGame generates game struct
@@ -65,7 +68,7 @@ func (g *Game) updateStroke(stroke *domain.Stroke) {
 }
 
 // Update used for ebiten.Run handler
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update(screen *ebiten.Image) (err error) {
 	// if mouse pressed or touched
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		s := domain.NewStroke(&domain.MouseStrokeSource{})
@@ -88,6 +91,11 @@ func (g *Game) Update(screen *ebiten.Image) error {
 		return errRegularTermination
 	}
 
+	g.scale = 0
+	if ebiten.IsKeyPressed(ebiten.KeyZ) {
+		g.scale = .1
+	}
+
 	if ebiten.IsDrawingSkipped() {
 		return nil
 	}
@@ -103,14 +111,27 @@ func (g *Game) Update(screen *ebiten.Image) error {
 		if _, ok := draggingSprites[s]; ok {
 			continue
 		}
-		s.Draw(screen, 0, 0, 1)
+		err = s.InitDrawingOptions().Zoom(
+			g.scale,
+		).Move(
+			0, 0,
+		).Draw(screen, 1)
 	}
 	for s := range g.strokes {
 		dx, dy := s.PositionDiff()
 		if sprite := s.DraggingObject().(*domain.Sprite); sprite != nil {
-			sprite.Draw(screen, dx, dy, 0.5)
+			err = sprite.InitDrawingOptions().Zoom(
+				g.scale,
+			).Move(
+				dx, dy,
+			).Draw(screen, 0.5)
 		}
 	}
 
-	return nil
+	ebitenutil.DebugPrint(screen, fmt.Sprint("press z to zoom"))
+	if err != nil {
+		ebitenutil.DebugPrint(screen, fmt.Sprint("err:", err.Error()))
+	}
+
+	return err
 }
