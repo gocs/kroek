@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"image"
 	_ "image/png"
+	"io/ioutil"
 	"log"
 	"math/rand"
 	"time"
@@ -12,7 +13,6 @@ import (
 
 	"github.com/gocs/kroek/space"
 	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/examples/resources/images"
 )
 
 var (
@@ -36,11 +36,25 @@ func init() {
 
 	screen = space.NewScreen(w, h)
 
-	img, _, err := image.Decode(bytes.NewReader(images.Tile_png))
+	content, err := ioutil.ReadFile("assets/pirate-treasure-map-sticker.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+	img, _, err := image.Decode(bytes.NewReader(content))
 	if err != nil {
 		log.Fatal(err)
 	}
 	ebitenImage, _ := ebiten.NewImageFromImage(img, ebiten.FilterDefault)
+
+	content1, err := ioutil.ReadFile("assets/pirate-treasure-map-sticker-bigger.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+	img1, _, err := image.Decode(bytes.NewReader(content1))
+	if err != nil {
+		log.Fatal(err)
+	}
+	ebitenImage1, _ := ebiten.NewImageFromImage(img1, ebiten.FilterDefault)
 
 	// Initialize the sprites.
 	sprites := []domain.Spriter{}
@@ -49,6 +63,7 @@ func init() {
 	mapSprite := domain.NewMapSprite(
 		screen,
 		ebitenImage,
+		ebitenImage1,
 		screen.Width()/2-middlePosX/2, screen.Height()/2-middlePosY/2,
 		cities)
 

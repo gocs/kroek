@@ -9,29 +9,25 @@ import (
 
 // Sprite represents an image.
 type Sprite struct {
-	screen Screener
-	image  *ebiten.Image
-	op     *ebiten.DrawImageOptions
-	x      int
-	y      int
-	Width  float64
-	Height float64
-	scale  float64
+	screen      Screener
+	image       *ebiten.Image
+	imageLarger *ebiten.Image
+	isLarger    bool
+	op          *ebiten.DrawImageOptions
+	x           int
+	y           int
 
 	err error
 }
 
 // NewSprite sprite initializer
-func NewSprite(screen Screener, spriteImage *ebiten.Image, x, y int) Spriter {
-	w, h := spriteImage.Size()
+func NewSprite(screen Screener, spriteImage, spriteImageLarger *ebiten.Image, x, y int) Spriter {
 	return &Sprite{
-		screen: screen,
-		image:  spriteImage,
-		x:      x,
-		y:      y,
-		Width:  float64(w),
-		Height: float64(h),
-		scale:  1,
+		screen:      screen,
+		image:       spriteImage,
+		imageLarger: spriteImageLarger,
+		x:           x,
+		y:           y,
 	}
 }
 
@@ -59,12 +55,20 @@ func (s *Sprite) In(x, y int) bool {
 
 	// todo: recognize color even if resized
 	// change s.image size by replacing image
+	if s.isLarger {
+		return s.imageLarger.At(x-s.x, y-s.y).(color.RGBA).A > 0
+	}
 	return s.image.At(x-s.x, y-s.y).(color.RGBA).A > 0
 }
 
 // MoveBy moves the sprite by (x, y).
 func (s *Sprite) MoveBy(x, y int) {
-	w, h := s.image.Size()
+	var w, h int
+	if s.isLarger {
+		w, h = s.imageLarger.Size()
+	} else {
+		w, h = s.image.Size()
+	}
 
 	s.x += x
 	s.y += y
@@ -90,19 +94,15 @@ func (s *Sprite) MoveBy(x, y int) {
 // anything between InitDrawingOptions and Draw are unordered
 type DrawingBuilder interface {
 	InitDrawingOptions() DrawingBuilder
-	Zoom(length float64) DrawingBuilder
 	Move(dx, dy int) DrawingBuilder
+	SwapLarger(isLarger bool) DrawingBuilder
 	Draw(screen *ebiten.Image, alpha float64) error
 }
 
-// Draw draws the sprite.
-func (s *Sprite) Draw(screen *ebiten.Image, alpha float64) error {
-	if s.op == nil {
-		return errors.New("add a &ebiten.DrawImageOptions{} to s.op")
-	}
-	s.op.ColorM.Scale(1, 1, 1, alpha)
-	s.err = screen.DrawImage(s.image, s.op)
-	return s.err
+// InitDrawingOptions every method in drawing must be preceded to keep the geom and colorm
+func (s *Sprite) InitDrawingOptions() DrawingBuilder {
+	s.op = &ebiten.DrawImageOptions{}
+	return s
 }
 
 // Move Moves the image to a location; basically Translate
@@ -115,43 +115,22 @@ func (s *Sprite) Move(dx, dy int) DrawingBuilder {
 	return s
 }
 
-// Zoom zooms the image larger or smaller
-func (s *Sprite) Zoom(length float64) DrawingBuilder {
+// SwapLarger change image to its bigger alternative if true
+func (s *Sprite) SwapLarger(isLarger bool) DrawingBuilder {
+	s.isLarger = isLarger
+	return s
+}
+
+// Draw draws the sprite.
+func (s *Sprite) Draw(screen *ebiten.Image, alpha float64) error {
 	if s.op == nil {
-		s.err = errors.New("add a &ebiten.DrawImageOptions{} to s.op")
-		return s
+		return errors.New("add a &ebiten.DrawImageOptions{} to s.op")
 	}
-	s.scale += length
-	s.Width += length
-	s.Height += length
-
-	s.op.GeoM.Scale(float64(s.scale), float64(s.scale))
-	return s
-}
-
-// InitDrawingOptions every method in drawing must be preceded to keep the geom and colorm
-func (s *Sprite) InitDrawingOptions() DrawingBuilder {
-	s.op = &ebiten.DrawImageOptions{}
-	return s
-}
-
-// MapSprite represents an image.
-type MapSprite struct {
-	Cities []*City
-
-	// MapSprite need these implementations
-	Spriter
-}
-
-// MapSpriter struct must be a Spriter with other methods here
-type MapSpriter interface {
-	Spriter
-}
-
-// NewMapSprite generates new map sprite
-func NewMapSprite(screen Screener, spriteImage *ebiten.Image, x, y int, cities []*City) MapSpriter {
-	return &MapSprite{
-		Cities:  cities,
-		Spriter: NewSprite(screen, spriteImage, x, y),
+	s.op.ColorM.Scale(1, 1, 1, alpha)
+	if s.isLarger {
+		s.err = screen.DrawImage(s.imageLarger, s.op)
+		return s.err
 	}
+	s.err = screen.DrawImage(s.image, s.op)
+	return s.err
 }

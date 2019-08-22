@@ -14,9 +14,9 @@ var errRegularTermination = errors.New("regular termination")
 
 // Game the game logic sequence struct
 type Game struct {
-	strokes map[*domain.Stroke]struct{}
-	sprites []domain.Spriter
-	scale   float64
+	strokes  map[*domain.Stroke]struct{}
+	sprites  []domain.Spriter
+	isLarger bool
 }
 
 // NewGame generates game struct
@@ -45,12 +45,12 @@ func (g *Game) updateStroke(stroke *domain.Stroke) {
 		return
 	}
 
-	s := stroke.DraggingObject().(domain.Spriter)
+	s := stroke.DraggingObject()
 	if s == nil {
 		return
 	}
 
-	s.MoveBy(stroke.PositionDiff())
+	s.(domain.Spriter).MoveBy(stroke.PositionDiff())
 
 	index := -1
 	for i, ss := range g.sprites {
@@ -62,7 +62,7 @@ func (g *Game) updateStroke(stroke *domain.Stroke) {
 
 	// Move the dragged sprite to the front.
 	g.sprites = append(g.sprites[:index], g.sprites[index+1:]...)
-	g.sprites = append(g.sprites, s)
+	g.sprites = append(g.sprites, s.(domain.Spriter))
 
 	stroke.SetDraggingObject(nil)
 }
@@ -91,9 +91,8 @@ func (g *Game) Update(screen *ebiten.Image) (err error) {
 		return errRegularTermination
 	}
 
-	g.scale = 0
-	if ebiten.IsKeyPressed(ebiten.KeyZ) {
-		g.scale = .1
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonRight) {
+		g.isLarger = !g.isLarger
 	}
 
 	if ebiten.IsDrawingSkipped() {
@@ -102,8 +101,8 @@ func (g *Game) Update(screen *ebiten.Image) (err error) {
 
 	draggingSprites := map[domain.Spriter]struct{}{}
 	for s := range g.strokes {
-		if sprite := s.DraggingObject().(domain.Spriter); sprite != nil {
-			draggingSprites[sprite] = struct{}{}
+		if sprite := s.DraggingObject(); sprite != nil {
+			draggingSprites[sprite.(domain.Spriter)] = struct{}{}
 		}
 	}
 
@@ -111,24 +110,19 @@ func (g *Game) Update(screen *ebiten.Image) (err error) {
 		if _, ok := draggingSprites[s.(domain.Spriter)]; ok {
 			continue
 		}
-		err = s.InitDrawingOptions().Zoom(
-			g.scale,
-		).Move(
+		err = s.InitDrawingOptions().SwapLarger(g.isLarger).Move(
 			0, 0,
 		).Draw(screen, 1)
 	}
 	for s := range g.strokes {
 		dx, dy := s.PositionDiff()
-		if sprite := s.DraggingObject().(domain.Spriter); sprite != nil {
-			err = sprite.InitDrawingOptions().Zoom(
-				g.scale,
-			).Move(
+		if sprite := s.DraggingObject(); sprite != nil {
+			err = sprite.(domain.Spriter).InitDrawingOptions().SwapLarger(g.isLarger).Move(
 				dx, dy,
 			).Draw(screen, 0.5)
 		}
 	}
 
-	ebitenutil.DebugPrint(screen, fmt.Sprint("press z to zoom"))
 	if err != nil {
 		ebitenutil.DebugPrint(screen, fmt.Sprint("err:", err.Error()))
 	}

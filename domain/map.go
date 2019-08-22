@@ -9,10 +9,12 @@ type Point struct {
 	x, y int
 }
 
-// Map this is the greater view of the known world
-type Map struct {
-	sprite Sprite
-	cities []*Point
+// MapSprite represents an image.
+type MapSprite struct {
+	Cities []*City
+
+	// MapSprite need these implementations
+	Spriter
 }
 
 // Mapper struct using Map must have these methods
@@ -21,36 +23,21 @@ type Mapper interface {
 	Margin(ceiling, left, floor, right int)
 }
 
-// NewMap generates a new map
-func NewMap(screen Screener, mapImage *ebiten.Image, x, y int, cities []*Point) *Map {
-	return &Map{
-		sprite: Sprite{
-			screen: screen,
-			image:  mapImage,
-			x:      x,
-			y:      y,
-		},
-		cities: cities,
+// MapSpriter also implements spriter
+type MapSpriter interface {
+	Spriter
+}
+
+// NewMapSprite generates new map sprite
+func NewMapSprite(screen Screener, spriteImage, spriteImageLarger *ebiten.Image, x, y int, cities []*City) MapSpriter {
+	return &MapSprite{
+		Cities:  cities,
+		Spriter: NewSprite(screen, spriteImage, spriteImageLarger, x, y),
 	}
 }
 
-// In returns true if (x, y) is in the map, and false otherwise.
-func (m *Map) In(x, y int) bool {
-	return m.sprite.In(x, y)
-}
-
-// MoveBy moves the map by (x, y).
-func (m *Map) MoveBy(x, y int) {
-	m.sprite.MoveBy(x, y)
-}
-
-// Draw draws the map.
-func (m *Map) Draw(screen *ebiten.Image, alpha float64) {
-	m.sprite.Draw(screen, alpha)
-}
-
-// City basic city struct 
+// City basic city struct
 type City struct {
-	name string
+	name     string
 	location Point
 }
